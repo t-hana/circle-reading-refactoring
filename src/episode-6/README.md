@@ -605,3 +605,211 @@ return anOrder.basePrice > 1000
 ```
 
 ## 関数宣言の変更
+
+関数の名前を変更したり、パラメータを追加・削除・変更したりすることです。  
+これにより、よりわかりやすい名前を使用したり、関数の振る舞いをより正確に表現したりすることができます。
+
+### ※ 関数宣言の変更の動機
+
+- 関数名の改善
+  - 関数名がその機能を正確に反映していない、またはより良い名前を思いついた時
+    - 名前でわかれば、それが何をしているかの謎解きをしなくてよくなる
+- パラメータの追加
+  - 新たな機能を実装したり、既存機能を改善するために新たな引数が必要な時
+- パラメータの追加と削除
+  - パラメータがなくても適切に動作したり、パラメータが冗長であった時
+- パラメータの最順序
+  - 引数の順序を変更すると、
+
+### ※ 関数宣言の変更の手順
+
+#### ◆ 簡易な手順
+
+- パラメータを削除する場合、それが関数内部で参照されていないかを確認
+- 関数宣言を望ましいものに変更
+- 古い関数宣言へのすべての参照を探し、新しいものに更新
+- テストする
+
+#### ◆ 移行的手順
+
+- 必要であれば関数本体をリファクタリング
+  - 以降の抽出のステップを実施しやすくしておく
+- 関数本体に **関数の抽出** を実施、新たな関数を作成
+  - 新たな関数の名前を古いものと同じにするならわかり易い名前で一時的に
+- 抽出した関数に追加のパラメータが必要な場合、簡易な手順で追加を行う
+- テストする
+- 古い関数に **関数のインライン化** を実施
+- 一時的な関数名にした場合、**関数宣言の変更** を実施し元の名前に
+- テストする
+
+##### 例： 関数名の変更(簡易な手順)
+
+```js
+function circum(radius) {
+  return 2 * Math.PI * radius
+}
+```
+
+式を見れば円周を計算するものですが  
+名前が circum だと周囲という意味なので  
+
+```js
+function circumference(radius) {
+  return 2 * Math.PI * radius
+}
+```
+
+円周という名前に変更しました。  
+そして circum を呼び出しているところを探し出し circumference に変更しました。
+
+この簡易な手順の欠点はすべての呼び出し箇所と宣言を一度に変更しないといけない
+
+##### 例： 関数名の変更(移行的手順)
+
+```js
+function circum(radius) {
+  return 2 * Math.PI * radius
+}
+```
+
+まずは関数の抽出を実施し
+
+```js
+function circum(radius) {
+  return circumference(radius)
+}
+function circumference(radius) {
+  return 2 * Math.PI * radius
+}
+```
+
+これで古い関数を呼び出している箇所を探し出し置き換えます。
+すべて置き換えが終わったら circum を消すことができます。
+
+この方法だと、書き換えは一つずつできて、都度都度のテストが可能になります。
+
+##### 例： パラメータの追加
+
+```js
+class Book {
+  addReservation(customer);
+}
+```
+
+図書管理のBookクラスには 貸出予約を受け付ける addReservation メソッドがあります  
+この予約に優先度付き待ち行列をサポートを追加します
+
+```js
+class Book {
+  addReservation(
+    this.zz_addReservation(customer)
+  );
+  zz_addReservation(
+    this._reservations.push(customer)
+  );
+}
+```
+
+関数の抽出を施し新たな関数を作ります  
+同名にはできないので後で見つけやすい一時的な名前をつけます。
+
+```js
+class Book {
+  addReservation(
+    this.zz_addReservation(customer, false)
+  );
+  zz_addReservation(customer, isPriority) (
+    this._reservations.push(customer)
+  );
+}
+```
+
+宣言と呼び出しにパラメータ追加
+
+JSの場合、呼び出し側を変更する前に アサーションの導入(10章)を施し  
+新たなパラメータが呼び出し側で設定されているかのチェックする
+
+```js
+class Book {
+  zz_addReservation(customer, isPriority) (
+    assert(isPriority === true || isPriority === false)
+    this._reservations.push(customer)
+  );
+}
+```
+
+こうすることでパラメータの入れ忘れがあるとアサーションが間違いを教えてくれます。
+
+これで元の関数に対して **関数のインライン化** を実施します。  
+呼び出し側も一つずつ変更できます。
+
+##### 例： パラメータをプロパティに変更する
+
+顧客がニューイングランド出身かを判定する関数があります
+
+```js
+function inNewEngland(aCustomer) {
+  return ["MA","CT","ME","VT","NH","RI"].includes(aCustomer.address.state)
+}
+
+const newEnglanders = aCustomer.filter(c => inNewEngland(c) )
+
+```
+
+inNewEngland をリファクタリングし顧客に依存しないようにします
+
+```js
+function inNewEngland(aCustomer) {
+  return ["MA","CT","ME","VT","NH","RI"].includes(aCustomer.address.state)
+}
+
+const newEnglanders = aCustomer.filter(c => inNewEngland(c) )
+```
+
+関数名の変更の最初の一手は関数の抽出を適用することですが  
+この関数は本体をすこしリファクタリングすることであとが楽になります。  
+変数の抽出を実施し新たなパラメータを抽出します
+
+```js
+function inNewEngland(aCustomer) {
+  const stateCode = aCustomer.address.state
+  return ["MA","CT","ME","VT","NH","RI"].includes(stateCode)
+}
+
+const newEnglanders = someCustomer.filter(c => inNewEngland(c) )
+```
+
+そしてここで関数の抽出
+
+```js
+function inNewEngland(aCustomer) {
+  const stateCode = aCustomer.address.state
+  return xxNewEngland(stateCode)
+}
+
+function xxNewEngland(stateCode) {
+  return ["MA","CT","ME","VT","NH","RI"].includes(stateCode)
+}
+```
+
+そして元の関数の入力パラメータに変数のインライン化を実施します
+
+```js
+function inNewEngland(aCustomer) {
+  return xxNewEngland(aCustomer.address.state)
+}
+
+function xxNewEngland(stateCode) {
+  return ["MA","CT","ME","VT","NH","RI"].includes(stateCode)
+}
+```
+
+次に関数のインライン化を使って古い関数の中身を呼び出し側に  
+これで一つずつ置き換えができるようになります
+
+```js
+const newEnglanders = someCustomer.filter(c => xxNewEngland(c.address.state))
+```
+
+すべての置き換えが完了したら
+xxNewEngland から inNewEngland に関数宣言の変更を実施して完了です。
