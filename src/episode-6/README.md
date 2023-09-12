@@ -426,6 +426,145 @@ function reportLines(aCustomer) {
 
 ## 変数の抽出
 
+### ※ 変数の抽出の動機
+
+コード内の式に名前をつけたいとき  
+
+#### ◆ 変数の抽出の期待される効果
+
+- 同じ式を何度も書かなくて良くなる
+- 変数名により見ただけで式がわかりやすくなり、コメントが不要になる
+
+### ※ 変数の抽出の手順
+
+- 抽出しようとする式に副作用がないことを確認する
+- 変更不可な変数を定義する、名付けたい式の値をその変数に設定する
+- 元の式を新しい変数で置き換える
+- テストする
+
+```js
+function price(order) {
+  // price = base price - quantity discount + shipping
+  return order.quantity * order.itemPrice -
+    Math.max(0, order.quantity - 500) * order.itemPrice * 0.05 +
+    Math.min(order.quantity * order.itemPrice * 0.1, 100);
+}
+```
+
+元々単純な計算ではありますが、まだ読みやすくできます  
+まず、basePrice(本体価格) は quantity(数量) と itemPrice(単価)をかけたものなので  
+変数を作成し名付けることで、理解したことをコードに反映させます  
+
+```js
+function price(order) {
+  // price = base price - quantity discount + shipping
+  const basePrice = order.quantity * order.itemPrice;
+  return order.quantity * order.itemPrice -
+    Math.max(0, order.quantity - 500) * order.itemPrice * 0.05 +
+    Math.min(order.quantity * order.itemPrice * 0.1, 100);
+}
+```
+  
+この時点では宣言しただけなので何も起きません  
+同じ式の部分を変数に置き換えます
+
+```js
+function price(order) {
+  // price = base price - quantity discount + shipping
+  const basePrice = order.quantity * order.itemPrice;
+  return basePrice -
+    Math.max(0, order.quantity - 500) * order.itemPrice * 0.05 +
+    Math.min(order.quantity * order.itemPrice * 0.1, 100);
+}
+```
+
+同じ式がもう一度使われているのでこれも置き換えます
+
+```js
+function price(order) {
+  // price = base price - quantity discount + shipping
+  const basePrice = order.quantity * order.itemPrice;
+  return basePrice -
+    Math.max(0, order.quantity - 500) * order.itemPrice * 0.05 +
+    Math.min(basePrice * 0.1, 100);
+}
+```
+
+次は quantityDiscount(数量値引)で、これも抽出できます。
+
+```js
+function price(order) {
+  // price = base price - quantity discount + shipping
+  const basePrice = order.quantity * order.itemPrice;
+  const quantityDiscount = Math.max(0, order.quantity - 500) * order.itemPrice * 0.05;
+  return basePrice -
+    quantityDiscount +
+    Math.min(basePrice * 0.1, 100);
+}
+```
+
+最後に shipping(送料)も変数化します。  
+これでコメントが書かれたコード以上のことを表していないので削除可になります。
+
+```js
+function price(order) {
+  const basePrice = order.quantity * order.itemPrice;
+  const quantityDiscount = Math.max(0, order.quantity - 500) * order.itemPrice * 0.05;
+  const shipping = Math.min(basePrice * 0.1, 100);
+  return basePrice - quantityDiscount + shipping;
+}
+```
+
+#### ◆ 例 クラスのコンテキストで
+
+```js
+class Order {
+  constructor(aRecord) {
+    this._data = aRecord;
+  }
+
+  get quantity() {return this._data.quantity;}
+  get itemPrice() {return this._data.itemPrice;}
+
+  get price() {
+    return this.basePrice - this.quantityDiscount + this.shipping;
+  }
+  
+  get basePrice() {
+    return order.quantity * order.itemPrice -
+      Math.max(0, order.quantity - 500) * order.itemPrice * 0.05 +
+      Math.min(order.quantity * order.itemPrice * 0.1, 100);
+  }
+}
+```
+
+このケースでも同様に抽出できます。  
+ただし、こうした名前はこのOrderクラスの全体で通用することがわかったので  
+変数ではなくメソッドとして抽出します。
+
+```js
+class Order {
+  constructor(aRecord) {
+    this._data = aRecord;
+  }
+
+  get quantity() {return this._data.quantity;}
+  get itemPrice() {return this._data.itemPrice;}
+
+  get price() {
+    return this.basePrice - this.quantityDiscount + this.shipping;
+  }
+
+  get basePrice() {return this.quantity * this.itemPrice; }
+  get quantityDiscount() {return Math.max(0, order.quantity - 500) * order.itemPrice * 0.05; }
+  get shipping() {return Math.min(basePrice * 0.1, 100); }
+}
+```
+
+これはオブジェクトのすぐれた利点の一つ  
+ロジックはオブジェクトに与えられた適切な大きさのコンテキストを通じて  
+他のロジックやデータを共有できます。
+
 ## 変数のインライン化
 
 ## 関数宣言の変更
