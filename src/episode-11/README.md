@@ -143,12 +143,12 @@ function raise (aPerson, factor) {
 }
 ```
 
-## パラメータによる関数の統合の動機
+### パラメータによる関数の統合の動機
 
 リテラル値が異なるだけの非常によく似たロジックを持つ関数が2つあるなら  
 異なる値を渡すためのパラメータを持った一つの関数を用いることで重複を排除できます。
 
-## パラメータによる関数の統合の手順
+### パラメータによる関数の統合の手順
 
 - 類似関数のうち一つを選ぶ
 - 関数宣言の変更(第6章)を適用してリテラル値をすべてパラメータに
@@ -237,6 +237,120 @@ function baseChange (usage) {
 ```
 
 ## 3 フラグパラメータの削除
+
+```javascript
+function setDemension (name, value) {
+  if(name === "height") {
+    this._height = value;
+    return;
+  }
+  if(name === "width") {
+    this._width = value;
+    return;
+  }
+}
+```
+
+```javascript
+function setHeight (value) { this._height = value; }
+function setWidth (value) { this._width = value; }
+```
+
+### フラグパラメータの削除の動機
+
+### フラグパラメータの削除の手順
+
+```javascript
+aShipment.delivaryDate = delivaryDate(anOrder, true)
+```
+
+```javascript
+aShipment.delivaryDate = delivaryDate(anOrder, false)
+```
+
+```javascript
+function delivaryDate (anOrder, isRush) {
+  if(isRush) {
+    let delivaryTime;
+    if (["MA","CT"].includes(anOrder.delivaryState)) delivaryTime = 1;
+    else if (["NY","NH"].includes(anOrder.delivaryState)) delivaryTime = 2;
+    else delivaryTime = 3;
+    return anOrder.priceOn.plusDays(1 + delivaryTime)
+  } eles {
+    let delivaryTime;
+    if (["MA","CT","NY"].includes(anOrder.delivaryState)) delivaryTime = 2;
+    else if (["ME","NH"].includes(anOrder.delivaryState)) delivaryTime = 3;
+    else delivaryTime = 4;
+    return anOrder.priceOn.plusDays(1 + delivaryTime)
+  }
+}
+```
+
+```javascript
+function delivaryDate (anOrder, isRush) {
+  let delivaryTime;
+  if (isRush) return  rushDelivaryDateanOrder(anOrder);
+  else regularDelivaryDate(anOrder);
+}
+
+function rushDelivaryDate (anOrder) {
+  let delivaryTime;
+  if (["MA","CT"].includes(anOrder.delivaryState)) delivaryTime = 1;
+  else if (["NY","NH"].includes(anOrder.delivaryState)) delivaryTime = 2;
+  else delivaryTime = 3;
+  return anOrder.priceOn.plusDays(1 + delivaryTime)
+}
+
+function regularDelivaryDate (anOrder) {
+  let delivaryTime;
+  if (["MA","CT","NY"].includes(anOrder.delivaryState)) delivaryTime = 2;
+  else if (["ME","NH"].includes(anOrder.delivaryState)) delivaryTime = 3;
+  else delivaryTime = 4;
+  return anOrder.priceOn.plusDays(1 + delivaryTime)
+}
+```
+
+```javascript
+aShipment.delivaryDate = delivaryDate(anOrder, true)
+aShipment.delivaryDate = rushDelivaryDate(anOrder)
+```
+
+```javascript
+const isRush = datermineIfRush(anOrder)
+aShipment.delivaryDate = delivaryDate(anOrder, isRush)
+```
+
+```javascript
+function delivaryDate (anOrder, isRush) {
+  let result;
+  let delivaryTime;
+  if (anOrder.delivaryState === "MA" || anOrder.delivaryState === "CT") {
+    delivaryTime = isRush ? 1 : 2;
+  }
+  else if (anOrder.delivaryState === "NY" || anOrder.delivaryState === "NH") {
+    delivaryTime = 2;
+    if (anOrder.delivaryState === "NH" && isRush) {
+      delivaryTime = 3;
+    }
+  }
+  else if (isRush) {
+    delivaryTime = 3;
+  }
+  else if (anOrder.delivaryState === "ME") {
+    delivaryTime = 3;
+  } else {
+    delivaryTime = 4;
+  }
+  result = anOrder.priceOn.plusDays(1 + delivaryTime)
+  if(isRush) result = result.minusDays(1)
+  return result
+}
+```
+
+```javascript
+function rushDelivaryDate (anOrder, ) { return delivaryDate(anOrder, true); }
+function regularDelivaryDate (anOrder, ) { return delivaryDate(anOrder, false); }
+```
 
 ## 4 オブジェクトそのものの受け渡し
 
