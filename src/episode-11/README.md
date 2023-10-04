@@ -128,6 +128,114 @@ function alertForMiscreant (people) {
 
 ## 2 パラメータによる関数の統合
 
+```javascript
+function tenPercentRaise (aPerson) {
+  aPerson.salary = aPerson.salary.multiply(1.1)
+}
+function fivePercentRaise (aPerson) {
+  aPerson.salary = aPerson.salary.multiply(1.05)
+}
+```
+
+```javascript
+function raise (aPerson, factor) {
+  aPerson.salary = aPerson.salary.multiply(1 + factor)
+}
+```
+
+## パラメータによる関数の統合の動機
+
+リテラル値が異なるだけの非常によく似たロジックを持つ関数が2つあるなら  
+異なる値を渡すためのパラメータを持った一つの関数を用いることで重複を排除できます。
+
+## パラメータによる関数の統合の手順
+
+- 類似関数のうち一つを選ぶ
+- 関数宣言の変更(第6章)を適用してリテラル値をすべてパラメータに
+- その関数を呼び出しているすべてのところで対応するリテラル値を渡す
+- テストする
+- 新しいパラメータを使用するように関数の本体を変更し、その度にテストする
+- 類似の関数それぞれについて、元の関数呼び出しをパラメータ付きの関数呼び出しに置き換え、都度テストする
+  - 適合しない場合はうまく調整する（？）
+
+次のコードは
+usage(使用量)のband(帯域)別に設定される料率でamount(料金)を計算する
+
+```javascript
+function baseChange (usage) {
+  if(usege < 0) return usd(0);
+  const amount = 
+        bottomBand(usage) * 0.03
+        + middleBand(usage) * 0.05
+        + topBand(usage) * 0.07
+  return usd(amount)
+}
+
+function bottomBand(usage) {
+  return Math.min(usage, 100)
+}
+
+function middleBand(usage) {
+  return usage > 100 ? Math.min(usage, 200) - 100 : 0;
+}
+
+function topBand(usage) {
+  return usage > 200 ? usage - 200 : 0;
+}
+```
+
+middleBand は 100 と 200 というリテラルを2つ持っているので  
+関数宣言の変更を適用して呼び出し時のパラメータに追加します
+
+```javascript
+function withinBand(usage, bottom, top) {
+  return usage > 100 ? Math.min(usage, 200) - 100 : 0;
+}
+
+function baseChange (usage) {
+  if(usege < 0) return usd(0);
+  const amount = 
+        bottomBand(usage) * 0.03
+        + withinBand(usage, 100, 200) * 0.05
+        + topBand(usage) * 0.07
+  return usd(amount)
+}
+```
+
+```javascript
+function withinBand(usage, bottom, top) {
+  return usage > bottom ? Math.min(usage, 200) - bottom : 0;
+}
+```
+
+```javascript
+function withinBand(usage, bottom, top) {
+  return usage > bottom ? Math.min(usage, top) - bottom : 0;
+}
+```
+
+```javascript
+function baseChange (usage) {
+  if(usege < 0) return usd(0);
+  const amount = 
+        withinBand(usage, 0, 100) * 0.03
+        + withinBand(usage, 100, 200) * 0.05
+        + topBand(usage) * 0.07
+  return usd(amount)
+}
+```
+
+```javascript
+function baseChange (usage) {
+  if(usege < 0) return usd(0);
+  const amount = 
+        withinBand(usage, 0, 100) * 0.03
+        + withinBand(usage, 100, 200) * 0.05
+        + withinBand(usage, 200, Infinity) * 0.07
+  return usd(amount)
+}
+```
+
 ## 3 フラグパラメータの削除
 
 ## 4 オブジェクトそのものの受け渡し
