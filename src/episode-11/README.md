@@ -756,3 +756,158 @@ function charge(customer, usage) {
 - コンストラクタの呼び出しとコマンドの実行メソッドの呼び出しを、呼び出し元（↑で作った置き換えるための関数）にインライン化する
 - テストする
 - 「デッドコードの削除」をコマンドクラスに適用する
+
+```javascript
+class ChargeCaluclator {
+  constructor(customer, usage, provider) {
+    this._customer = customer
+    this._usage = usage
+    this._provider = provider
+  }
+
+  get baseCharge() {
+    return this._customer.baseRate * this._usage;
+  }
+
+  get charge() {
+    return this.baseCharge + this._provider.connectionCharge;
+  }
+}
+```
+
+これは下記のように呼ばれます
+
+```javascript
+monthCherge = new ChargeCaluclator(customer, usage, provider).charge;
+```
+
+このコマンドクラスは小さくてシンプルなので関数にします
+
+```javascript
+// caller
+monthCherge = new charge(customer, usage, provider);
+
+// top lebel
+function charge(customer, usage, provider) {
+  return new ChargeCaluclator(customer, usage, provider).charge;
+}
+```
+
+サポート関数をどのように処理するか決めます  
+ここでは baseCharge がサポート関数です。
+
+値を返す関数に対する通常のアプローチは、まずその値に対し「変数の抽出」を適用することです
+
+```javascript
+class ChargeCaluclator {
+  constructor(customer, usage, provider) {
+    this._customer = customer
+    this._usage = usage
+    this._provider = provider
+  }
+
+  get baseCharge() {
+    return this._customer.baseRate * this._usage;
+  }
+
+  get charge() {
+    const baseCharge = this.baseCharge;
+    return baseCharge + this._provider.connectionCharge;
+  }
+}
+```
+
+次にサポート関数に「関数のインライン化」を適用
+
+```javascript
+class ChargeCaluclator {
+  // 省略
+  get charge() {
+    const baseCharge = this._customer.baseRate * this._usage;
+    return baseCharge + this._provider.connectionCharge;
+  }
+}
+```
+
+これですべての処理が charge に収まりました。
+
+次のステップはコンストラクタに渡されるデータをこの関数に移動することです
+
+```javascript
+class ChargeCaluclator {
+  constructor(customer, usage, provider) {
+    this._customer = customer
+    this._usage = usage
+    this._provider = provider
+  }
+
+  get baseCharge() {
+    return this._customer.baseRate * this._usage;
+  }
+
+  get charge(customer, usage, provider) {
+    const baseCharge = this._customer.baseRate * this._usage;
+    return baseCharge + this._provider.connectionCharge;
+  }
+}
+
+// top lebel
+function charge(customer, usage, provider) {
+  return new ChargeCaluclator(customer, usage, provider)
+    .charge(customer, usage, provider);
+}
+```
+
+```javascript
+class ChargeCaluclator {
+  constructor(customer, usage, provider) {
+    // this._customer = customer
+    this._usage = usage
+    this._provider = provider
+  }
+  // 省略
+
+  get charge(customer, usage, provider) {
+    const baseCharge = customer.baseRate * this._usage;
+    return baseCharge + this._provider.connectionCharge;
+  }
+}
+
+// top lebel
+function charge(customer, usage, provider) {
+  return new ChargeCaluclator(customer, usage, provider)
+    .charge(customer, usage, provider);
+}
+```
+
+コンストラクタの this._customer への代入を取り除くのは冗長に見えます。  
+その値は使われずに無視されるだけだからです。
+
+しかしフィールドの使用をパラメータに変更するのを忘れた場合にテストが失敗してわかるので  
+取り除く方がいいでしょう
+
+これを他のパラメータに対して繰り返すと次のようになります。
+
+```javascript
+class ChargeCaluclator {
+  // 省略
+
+  get charge(customer, usage, provider) {
+    const baseCharge = customer.baseRate * usage;
+    return baseCharge + provider.connectionCharge;
+  }
+}
+```
+
+これらをすべてやり終えたらトップレベルの charge関数にインライン化します。  
+これは「関数のインライン化」の特殊形で、コンストラクタとメソッド呼び出しの両方をインライン化します。
+
+```javascript
+// top lebel
+function charge(customer, usage, provider) {
+  const baseCharge = customer.baseRate * usage;
+  return baseCharge + provider.connectionCharge;
+}
+```
+
+こうして、このコマンドクラスはデッドコードになったので「デッドコードの削除」を適用します。
