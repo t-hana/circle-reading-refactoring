@@ -2,7 +2,11 @@
 
 ## 1 問い合わせと更新の分離
 
-### 問い合わせと更新の分離の動機
+### 問い合わせと更新の分離の要約
+
+問い合わせメソッドはそのまま情報を返すべく機能し、  
+一方で更新メソッドは状態を変更するのみで、明示的な値を返すべきではないという形に分けます。  
+このようにすることで、それぞれのメソッドが何をするのかが一目瞭然となり、コードの解釈とデバッグが容易になります。
 
 ```javascript
 function getTotalOutstandingAndSendBill() {
@@ -23,6 +27,8 @@ function sendBill() {
   emailGateway.send(formatBill(customer))
 }
 ```
+
+### 問い合わせと更新の分離の動機
 
 修正前のコードは値を返すと同時に副作用があります。  
 修正後のように値を返す関数は副作用を持ってはならないと言うようなルールを取り入れるべきです  
@@ -128,6 +134,13 @@ function alertForMiscreant (people) {
 
 ## 2 パラメータによる関数の統合
 
+### パラメータによる関数の統合の要約
+
+コード内の重複を最小限に抑えます。  
+同じ操作を行う関数が複数存在する場合、それは更新とメンテナンスを難しくなります。  
+たとえば、クラスが似たような役割を持つ複数のメソッドを持つ場合、  
+その機能は一つの単一のメソッドに集約され、適切な引数を提供することでその挙動を制御することができます。
+
 ```javascript
 function tenPercentRaise (aPerson) {
   aPerson.salary = aPerson.salary.multiply(1.1)
@@ -158,7 +171,7 @@ function raise (aPerson, factor) {
 - 類似の関数それぞれについて、元の関数呼び出しをパラメータ付きの関数呼び出しに置き換え、都度テストする
   - 適合しない場合はうまく調整する（？）
 
-次のコードは
+次のコードは  
 usage(使用量)のband(帯域)別に設定される料率でamount(料金)を計算する
 
 ```javascript
@@ -237,6 +250,12 @@ function baseChange (usage) {
 ```
 
 ## 3 フラグパラメータの削除
+
+### フラグパラメータの削除の要約
+
+フラグパラメータは、一つの関数で複数の挙動を制御するには便利な手段ですが、  
+これは同時にそれぞれの役割が一つの関数で混在するため、可読性を下げます。  
+そして、フラグにより関数が異なる動きをするとき、それは異なる関数とすべきだと解説されています。
 
 ```javascript
 function setDemension (name, value) {
@@ -354,14 +373,198 @@ function regularDelivaryDate (anOrder, ) { return delivaryDate(anOrder, false); 
 
 ## 4 オブジェクトそのものの受け渡し
 
+```javascript
+const low = aRoom.daysTempRange.low
+const high = aRoom.daysTempRange.high
+if (aPlan.withinRange(low, high))
+```
+
+```javascript
+if (aPlan.withinRange(aRoom.daysTempRange))
+```
+
+### オブジェクトそのものの受け渡しの要約
+
+関数が本来やるべきこと以上の情報を引数や戻り値として持たせる、つまり**情報の過多**について語られます。  
+具体的には、ある関数がデータアイテムを個別に参照して渡す代わりに、  
+それらを一つのオブジェクトとしてまとめて受け渡す手法が解説されています。
+
+### オブジェクトそのものの受け渡しの動機
+
+### オブジェクトそのものの受け渡しの手順
+
 ## 5 問い合わせによるパラメータの置き換え
+
+### 問い合わせによるパラメータの置き換えの要約
+
+関数が要求できる情報の数を減らすことを説明しています。  
+
+役割としては、引数の数が減ることで関数の使用を単純化し、  
+また情報を直接クエリすることで、呼び出し側が余計な情報を持つ必要がなくなります。
+
+ただ、この手法には注意点があり、関数本体で情報を取り出す動作が重い場合等は慎重に考える必要があります。
+
+```javascript
+function availableVacation (anEnployee, anEnployee.grade);
+
+function availableVacation (anEnployee, grade) {
+  // 休暇計算の処理
+}
+```
+
+```javascript
+function availableVacation (anEnployee);
+
+function availableVacation (anEnployee) {
+  const grade = anEnployee.grade
+  // 休暇計算の処理
+}
+```
+
+### 問い合わせによるパラメータの置き換えの動機
+
+### 問い合わせによるパラメータの置き換えの手順
 
 ## 6 パラメータによる問い合わせの置き換え
 
+### パラメータによる問い合わせの置き換えの要約
+
+ソースコードにおいて直接的な情報の収集（問い合わせ）を過度に依存することに制約をかけ、  
+それを関数のパラメータとして受け取る形に変更するリファクタリング方法です。
+
+この手法は、関数が自己完結型であること、つまり関数がその実行に必要なすべての情報をパラメータとして明示的に受け取ることで、依存性を最小限に抑えることを勧めています。
+
+これにより、関数の再利用性が向上し、信頼性も高まります。
+
+```javascript
+targetTemperture(aPlan)
+
+function targetTemperture (aPlan) {
+  currentTemperture = thermostat.currentTemperture
+  const grade = anEnployee.grade
+  // 後続ロジック
+}
+```
+
+```javascript
+targetTemperture(aPlan, thermostat.currentTemperture)
+
+function targetTemperture (aPlan, currentTemperture) {
+  const grade = anEnployee.grade
+  // 後続ロジック
+}
+```
+
 ## 7 setter の削除
+
+### 7 setter の削除の要約
+
+setterメソッドはオブジェクト指向プログラミングで一般的に使われますが、  
+オブジェクトの内部状態を直接変更し、カプセル化を妨げる可能性があります。  
+ステートを直接操作すると、そのオブジェクトがどのように使用されるかを把握することが難しくなり、  
+コードの理解とメンテナンスが困難になります。
+
+この手法の推奨事項は、setterの代わりに「オブジェクトがどのように行動すべきか」を指示するメソッドを使用することです。  
+これにより、オブジェクトが保有する直接の状態情報の露出を制限しつつ、オブジェクトに対する役割や行動の指示を明示化します。
+
+```javascript
+class Person {
+  get name() {/* */}
+  set name(aString) {/* */}
+}
+```
+
+```javascript
+class Person {
+  get name() {/* */}
+}
+```
 
 ## 8 ファクトリ関数によるコンストラクタの置き換え
 
+### ファクトリ関数によるコンストラクタの置き換え
+
+コンストラクタの代わりにファクトリ関数を使用するというリファクタリング手法です。  
+コンストラクタはオブジェクトの初期化を行うための特別なメソッドで、新しいオブジェクトを作成するたびに実行されます。
+
+しかし、特定の場合にはコンストラクタだけではオブジェクトの作成に柔軟性が不足することがあります。
+
+ファクトリ関数は、単なる関数でありながら、それが呼び出される度に新しいオブジェクトを作成できます。  
+これにより、特定の条件に基づいて異なるタイプのオブジェクトを返すなど、オブジェクトの生成をより汎用性の高いものにすることが可能になります。
+
+```javascript
+leadEngineer = new Empliyee(document.leadEngineer, "E")
+```
+
+```javascript
+leadEngineer = createEngineer(document.leadEngineer)
+```
+
 ## 9 コマンドによる関数の置き換え
 
+### コマンドによる関数の置き換えの要約
+
+指示を表現するためのオブジェクト（コマンドオブジェクト）を作成し、そのオブジェクトが特定の動作を行うことで、ある関数を代替するリファクタリング手法です。  
+
+この手法は特に、同じ操作を何度も行う場合や、操作が特定の条件に基づいて変化する場合、または操作を動的に組み替える必要がある場合に非常に有効です。
+
+具体的には、操作の組み合わせが多数ある場合や、コードがユーザーの入力またはソフトウェアの状態によって行われる操作を制御する必要がある場合などに遅延処理または再試行の制御が必要とされます。
+
+ファンクションよりもコマンドオブジェクトを使う利点の一つは、状態を持つことができるという点です。これにより、コマンドオブジェクトはその操作が何回も行われる際の一貫性を保つのに役立ちます。
+
+この手法は適用するためには複雑さが伴うため、必要な場合にのみ検討するべきです。
+
+```javascript
+function score(candidate, miedicalExam, scoringGuide) {
+  let rusult = 0;
+  let helthLevel = 0;
+  // 以下、長いコード
+}
+```
+
+```javascript
+class Scorer {
+  constructor(candidate, miedicalExam, scoringGuide) {
+    this._candidate = candidate
+    this._miedicalExam = miedicalExam
+    this._scoringGuide = scoringGuide
+  }
+
+  excute() {
+    this._rusult = 0;
+    this._helthLevel = 0;
+    // 以下、長いコード
+  }
+}
+```
+
 ## 10 関数によるコマンドの置き換え
+
+### 関数によるコマンドの置き換えの要約
+
+あるコマンドオブジェクトが行っている操作を、同じ操作を行う新しい関数で置き換えるというリファクタリング戦略です。
+
+これは、一部の操作が詳細な状態管理や設定を必要とせず、単純な操作の組み合わせで行える場合に特に有用です。  
+この場合、コマンドオブジェクトはオーバーキルとなり、単純に動作を行う関数に置き換えられます。
+
+特定の状況や要求に対してコマンドオブジェクトが必要なくなった場合、それは関数に置き換えるべきです。  
+結果として、より簡潔で読みやすく、保守しやすいコードになります。
+
+```javascript
+class ChargeCaluclator {
+  constructor(customer, usage) {
+    this._customer = customer
+    this._usage = usage
+  }
+
+  excute() {
+    return this._customer.rate * this._usage;
+  }
+}
+```
+
+```javascript
+function charge(customer, usage) {
+  return customer.rate * usage;
+}
+```
