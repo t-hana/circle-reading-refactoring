@@ -408,6 +408,93 @@ if (aPlan.withinRange(aRoom.daysTempRange))
 
 ### オブジェクトそのものの受け渡しの手順
 
+- 望ましいパラメータを持った空の関数を作る
+- 新しく作った関数の新しいパラメータを古いパラメータに変換して、古い関数の呼び出して埋める
+- 静的テストを実行する
+- 新しい関数を使うように呼び出し元を調整 都度テスト
+- 古い呼び出し元がすべて変更されたら、古い関数に「関数のインライン化」を適用
+- 新しい関数と、そのすべての呼出元の名前を変更する。
+
+```javascript
+const low = aRoom.daysTempRange.low
+const high = aRoom.daysTempRange.high
+if (aPlan.withinRange(low, high)) {
+  alerts.push("室温が設定値を超えました")
+}
+
+class HeatingPlan {
+  withinRange(bottom, top) {
+    return (bottom >= this._temperatureRange.low) 
+      && (top <>= this._temperatureRange.high) 
+  }
+}
+```
+
+範囲情報をバラバラに渡している代わりに範囲オブジェクトを使用  
+必要な関数を空で用意、メソッド名は作業中の仮なので適当な接頭辞
+
+```javascript
+class HeatingPlan {
+  xxNEWwithinRange(aNumberRange) {
+  }
+}
+```
+
+そのパラメータから既存のコードを呼び出す。
+
+```javascript
+class HeatingPlan {
+  xxNEWwithinRange(aNumberRange) {
+    return this.withinRange(aNumberRange.low, aNumberRange.high)
+  }
+}
+```
+
+既存の関数の呼び出しを新しい関数に置き換える
+
+```javascript
+const low = aRoom.daysTempRange.low
+const high = aRoom.daysTempRange.high
+if (aPlan.xxNEWwithinRange(aRoom.daysTempRange)) {
+  alerts.push("室温が設定値を超えました")
+}
+```
+
+low と high がいらなくなるので削除
+
+```javascript
+if (aPlan.xxNEWwithinRange(aRoom.daysTempRange)) {
+  alerts.push("室温が設定値を超えました")
+}
+```
+
+呼び出しの変更は変更ごとにテストし  
+すべてを置き換えたら、関数に「関数のインライン化」を適用
+
+```javascript
+class HeatingPlan {
+  xxNEWwithinRange(aNumberRange) {
+    return (aNumberRange.low >= this._temperatureRange.low) 
+      && (aNumberRange.high <>= this._temperatureRange.high) 
+  }
+}
+```
+
+そして新しい関数と呼び出し元をリネームします
+
+```javascript
+class HeatingPlan {
+  withinRange(aNumberRange) {
+    return (aNumberRange.low >= this._temperatureRange.low) 
+      && (aNumberRange.high <>= this._temperatureRange.high) 
+  }
+}
+
+if (aPlan.withinRange(aRoom.daysTempRange)) {
+  alerts.push("室温が設定値を超えました")
+}
+```
+
 ## 5 問い合わせによるパラメータの置き換え
 
 ### 問い合わせによるパラメータの置き換えの要約
