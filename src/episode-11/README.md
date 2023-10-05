@@ -287,6 +287,9 @@ function setWidth (value) { this._width = value; }
 
 ### フラグパラメータの削除の手順
 
+- パラメータの値に対応して明示的な関数を作成する
+- パラメータにリテラル値を指定している呼び出し元を、対応する明示的な関数呼び出しに置き換える
+
 ```javascript
 aShipment.delivaryDate = delivaryDate(anOrder, true)
 ```
@@ -316,7 +319,7 @@ function delivaryDate (anOrder, isRush) {
 ```javascript
 function delivaryDate (anOrder, isRush) {
   let delivaryTime;
-  if (isRush) return  rushDelivaryDateanOrder(anOrder);
+  if (isRush) return rushDelivaryDateanOrder(anOrder);
   else regularDelivaryDate(anOrder);
 }
 
